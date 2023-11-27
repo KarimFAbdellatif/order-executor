@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-
 import aws_cdk as cdk
 
 from order_executor.order_executor_stack import OrderExecutorStack
