@@ -22,17 +22,20 @@ class OrderExecutorStack(Stack):
         dynamo_db = dynamodb.Table(self,
                                    'My db',
                                    partition_key=dynamodb.Attribute(name="PK", type=dynamodb.AttributeType.STRING),
-                                   billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST)
+                                   billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+                                   table_name="post_orders_table")
 
-        order_results = s3.Bucket(self, 'order-results')
+        order_results = s3.Bucket(self, 'order-results', bucket_name="order-output")
 
         lambda_a = lambda_.Function(self, "Lambda a",
+                                    function_name= "Lambda_a",
                                     runtime=lambda_.Runtime.PYTHON_3_11,
                                     handler="app.lambda_handler",
                                     code=lambda_.Code.from_asset(path.join("lambdas/lambda_a/")))
 
         lambda_b = lambda_.Function(self, "Lambda b",
                                     runtime=lambda_.Runtime.PYTHON_3_11,
+                                    function_name= "Lambda_b",
                                     handler="app.lambda_handler",
                                     code=lambda_.Code.from_asset(path.join("lambdas/lambda_b/")),
                                     environment={
@@ -42,6 +45,7 @@ class OrderExecutorStack(Stack):
         post_lambda = lambda_.Function(self, "Post lambda",
                                        runtime=lambda_.Runtime.PYTHON_3_11,
                                        handler="app.lambda_handler",
+                                       function_name="post_lambda",
                                        code=lambda_.Code.from_asset(path.join("lambdas/post_lambda/")),
                                        environment={
                                            'DYNAMODB_TABLE_NAME': dynamo_db.table_name}
@@ -76,7 +80,7 @@ class OrderExecutorStack(Stack):
         #get_status.add_catch(lambda_b_failed, fail_notification )
 
         state_machine_definition = start.next(sfn.Choice(self, "Successful lambda_a").when(lambda_a_condition, map_lambda_b.iterator(get_status.add_catch(fail_notification))).otherwise(start))
-        state_machine = sfn.StateMachine(self, "State Machine",
+        state_machine = sfn.StateMachine(self, "State Machine", state_machine_name="State_Machine_orders",
                                          definition_body=sfn.DefinitionBody.from_chainable(state_machine_definition))
         scheduler.add_target(targets.SfnStateMachine(state_machine))
         api = apigateway.RestApi(self, "lambda-api")
