@@ -1,29 +1,35 @@
-on: [push]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   aws_cdk:
     runs-on: ubuntu-latest
     steps:
-
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: cdk diff
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'diff'
+          cdk_version: 2.109.0
           actions_comment: true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'eu-central-1'
-
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
       - name: cdk deploy
         uses: youyo/aws-cdk-github-actions@v2
         with:
           cdk_subcommand: 'deploy'
-          cdk_stack: 'stack1'
+          cdk_stack: 'OrderExecutorStack'
           cdk_args: '--require-approval never'
           actions_comment: false
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'eu-central-1'
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
