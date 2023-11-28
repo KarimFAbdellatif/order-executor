@@ -54,8 +54,7 @@ class OrderExecutorStack(Stack):
         dynamo_db.grant_read_write_data(post_lambda)
         scheduler = events.Rule(self, "ExecuteStateMachine",
                                 schedule=events.Schedule.cron(hour="18", minute="0"),
-                                # TODO set to true before execution.
-                                enabled=False
+                                enabled=True
                                 )
 
         start = tasks.LambdaInvoke(self, "Invoke lambda_a",

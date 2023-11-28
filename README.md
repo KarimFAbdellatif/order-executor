@@ -27,13 +27,14 @@ Any push to Main branch would result in a cdk automatic CDK diff -> CDK deploy i
   * Variables
     * CDK_DEFAULT_ACCOUNT
     * CDK_DEFAULT_REGION
-
 ## The cdk stack is divided into two parts: 
 * Post Lambda 
   * API-Gateway that introduce the POST method to call the Lambda function
   * DynamoDB database - No actual insertion done to the DB, but the rights are set up.
   * The lambda function generation
-* State machine triggered by a scheduler, the state machine contains: 
+* State machine triggered by a scheduler, the state machine contains:
+
+![img.png](img.png)
   * Lambda a 
   * Choice to loop through Lambda a until randomization provides a true statement.
   * Lambda b 
