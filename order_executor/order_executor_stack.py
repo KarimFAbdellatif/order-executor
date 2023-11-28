@@ -15,6 +15,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+
 class OrderExecutorStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -28,14 +29,14 @@ class OrderExecutorStack(Stack):
         order_results = s3.Bucket(self, 'order-results', bucket_name="order-output")
 
         lambda_a = lambda_.Function(self, "Lambda a",
-                                    function_name= "Lambda_a",
+                                    function_name="Lambda_a",
                                     runtime=lambda_.Runtime.PYTHON_3_11,
                                     handler="app.lambda_handler",
                                     code=lambda_.Code.from_asset(path.join("lambdas/lambda_a/")))
 
         lambda_b = lambda_.Function(self, "Lambda b",
                                     runtime=lambda_.Runtime.PYTHON_3_11,
-                                    function_name= "Lambda_b",
+                                    function_name="Lambda_b",
                                     handler="app.lambda_handler",
                                     code=lambda_.Code.from_asset(path.join("lambdas/lambda_b/")),
                                     environment={
@@ -53,33 +54,32 @@ class OrderExecutorStack(Stack):
         dynamo_db.grant_read_write_data(post_lambda)
         scheduler = events.Rule(self, "ExecuteStateMachine",
                                 schedule=events.Schedule.cron(hour="18", minute="0"),
-                                #TODO set to true before execution.
+                                # TODO set to true before execution.
                                 enabled=False
                                 )
 
         start = tasks.LambdaInvoke(self, "Invoke lambda_a",
                                    lambda_function=lambda_a,
                                    output_path="$.Payload"
-                                        )
-        ####definition = choice.when(condition1, step1).otherwise(step2).afterwards().next(finish)
+                                   )
         get_status = tasks.LambdaInvoke(self, "Invoke lambda_b",
                                         lambda_function=lambda_b,
                                         )
         fail_notification_que = sqs.Queue(self, "Notifications saved",
-                          )
+                                          )
         fail_notification = tasks.SqsSendMessage(
             self, "FailNotificationTask",
             queue=fail_notification_que,
-            message_body=sfn.TaskInput.from_json_path_at("$.Cause")  # Adjust as needed
+            message_body=sfn.TaskInput.from_json_path_at("$.Cause")
         )
-
-
         lambda_a_condition = sfn.Condition.boolean_equals('$.results', True)
-        map_lambda_b = sfn.Map(self, 'Lambda Iter',  items_path=sfn.JsonPath.string_at("$.orders"))
-        #lambda_b_failed = sfn.Fail(self, "Job failed", cause="Lambda_b returned a fail", error="lambda_b has failed")
-        #get_status.add_catch(lambda_b_failed, fail_notification )
+        map_lambda_b = sfn.Map(self, 'Lambda Iter', items_path=sfn.JsonPath.string_at("$.orders"))
 
-        state_machine_definition = start.next(sfn.Choice(self, "Successful lambda_a").when(lambda_a_condition, map_lambda_b.iterator(get_status.add_catch(fail_notification))).otherwise(start))
+        state_machine_definition = start.next(sfn.Choice(self, "Successful lambda_a").when(lambda_a_condition,
+                                                                                           map_lambda_b.iterator(
+                                                                                               get_status.add_catch(
+                                                                                                   fail_notification))).otherwise(
+            start))
         state_machine = sfn.StateMachine(self, "State Machine", state_machine_name="State_Machine_orders",
                                          definition_body=sfn.DefinitionBody.from_chainable(state_machine_definition))
         scheduler.add_target(targets.SfnStateMachine(state_machine))
@@ -88,5 +88,3 @@ class OrderExecutorStack(Stack):
         api.root.add_method("POST", integration,
                             method_responses=[{"statusCode": "200"}],
                             )
-
-
