@@ -1,5 +1,8 @@
 # Welcome to your CDK Python project!
+After following the initialization process written below by CDK.
+
 To deploy this code locally: 
+
 Export the AWS environment Variables and run;
 
 ```
